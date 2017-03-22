@@ -7,7 +7,7 @@ https://github.com/KiboOst/php-Kodi-jsonAPI
 
 class Kodi{
 
-	public $_version = "0.1";
+	public $_version = "0.2";
 
 	//user functions======================================================
 	//GET
@@ -276,6 +276,13 @@ class Kodi{
 		return $this->_request($jsonString);
 	}
 
+	//System
+	public function reboot() { return $this->_request('{"method":"System.Reboot"}'); }
+	public function hibernate() { return $this->_request('{"method":"System.Hibernate"}'); }
+	public function shutdown() { return $this->_request('{"method":"System.Shutdown"}'); }
+	public function suspend() { return $this->_request('{"method":"System.Suspend"}'); }
+
+
 	//internal functions==================================================
 	protected function PlayerGetProperties($prop, $playerid)
 	{
@@ -293,9 +300,9 @@ class Kodi{
 	}
 
 	//calling functions===================================================
-	public function sendJson($jsonString) //testing and custom json request purpose
+	public function sendJson($jsonString, $timeout=3) //testing and custom json request purpose
 	{
-		return $this->_request($jsonString);
+		return $this->_request($jsonString, $timeout);
 	}
 
 	protected function _request($jsonString, $timeout=3)
