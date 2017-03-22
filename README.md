@@ -24,13 +24,46 @@ $_Kodi = new Kodi($IP);
 if (isset($_Kodi->error)) die($_Kodi->error);
 ```
 
-Here goes some functions:
+Players functions:
 
 ```php
 //get current active player:
 $getActivePlayer = $_Kodi->getActivePlayer();
 echo "<pre>getActivePlayer:<br>".json_encode($getActivePlayer, JSON_PRETTY_PRINT)."</pre><br>";
 
+//start current player, or provide argument 0 for music, 1 for video, 2 for pictures
+$_Kodi->play();
+
+//stop current player:
+$_Kodi->stop();
+
+//get or set volume:
+$getVolume = $_Kodi->getVolume();
+echo "<pre>getVolume:<br>".json_encode($getVolume, JSON_PRETTY_PRINT)."</pre><br>";
+
+$_Kodi->setVolume(40);
+
+//get or set shuffle playing true/false
+$dev = $_Kodi->getShuffle();
+echo "<pre>dev:<br>".json_encode($dev, JSON_PRETTY_PRINT)."</pre><br>";
+
+$_Kodi->setShuffle(true);
+
+//get repeat:
+$dev = $_Kodi->getRepeat();
+echo "<pre>dev:<br>".json_encode($dev, JSON_PRETTY_PRINT)."</pre><br>";
+
+//set repeat one, all, off
+$_Kodi->setRepeat('all');
+
+//get playing time:
+$getTime = $_Kodi->getTime();
+echo "<pre>getTime:<br>".json_encode($getTime, JSON_PRETTY_PRINT)."</pre><br>";
+```
+
+Playlists functions:
+
+```php
 //get current playlist items, or provide argument 0 for music, 1 for video, 2 for pictures:
 $getPlayerItem = $_Kodi->getPlayerItem();
 echo "<pre>getPlayerItem:<br>".json_encode($getPlayerItem, JSON_PRETTY_PRINT)."</pre><br>";
@@ -41,36 +74,6 @@ $_Kodi->clearPlayList();
 //add a playlist file to current playlist:
 //if the playlist contains tons of files, it can return a timeout error but playlist will load.
 $_Kodi->loadPlaylist('special://profile/playlists/music/iJazz.xsp');
-
-//stop current player:
-$_Kodi->stop();
-
-//start current player, or provide argument 0 for music, 1 for video, 2 for pictures
-$_Kodi->play();
-
-//get or set volume:
-$getVolume = $_Kodi->getVolume();
-echo "<pre>getVolume:<br>".json_encode($getVolume, JSON_PRETTY_PRINT)."</pre><br>";
-
-$_Kodi->setVolume(40);
-
-//set shuffle playing true/false
-$_Kodi->setShuffle(true);
-
-//get shuffle:
-$dev = $_Kodi->getShuffle();
-echo "<pre>dev:<br>".json_encode($dev, JSON_PRETTY_PRINT)."</pre><br>";
-
-//set repeat one, all, off
-$_Kodi->setRepeat('all');
-
-//get repeat:
-$dev = $_Kodi->getRepeat();
-echo "<pre>dev:<br>".json_encode($dev, JSON_PRETTY_PRINT)."</pre><br>";
-
-//get playing time:
-$getTime = $_Kodi->getTime();
-echo "<pre>getTime:<br>".json_encode($getTime, JSON_PRETTY_PRINT)."</pre><br>";
 
 //open a file. This will play it automatically.
 $_Kodi->openFile("smb://NAS/hollidays2017/brittany_01_1080p.mkv");
@@ -84,11 +87,40 @@ $_Kodi->addPlayListDir("smb://NAS/videos/");
 $_Kodi->addPlayListFile("smb://NAS/videos/myVideo.mkv");
 ```
 
+System functions:
+
+```php
+$_Kodi->reboot();
+$_Kodi->hibernate();
+$_Kodi->shutdown();
+$_Kodi->suspend();
+```
+
+Special:
+
+```php
+$jsonString = '{"jsonrpc":"2.0","id":1,
+		"method":"Player.GetProperties",
+		"params":{"properties": ["canshuffle"], "playerid": 0}
+		}';
+
+$dev = $_Kodi->sendJson($jsonString);
+echo "<pre>dev:<br>".json_encode($dev, JSON_PRETTY_PRINT)."</pre><br>";
+```
+
+
 ## IFTTT
 
 You can create an endpoint url for triggering stuff from IFTTT. See IFTTTactions.php example.
 
 ## Changes
+
+#### v0.2 (2017-03-22)
+- New: $_Kodi->reboot()
+- New: $_Kodi->hibernate()
+- New: $_Kodi->shutdown()
+- New: $_Kodi->suspend()
+- New: Send custom json commande with $_Kodi->sendJson($jsonString, $timeout);
 
 #### v0.1 (2017-03-21)
 - First public version.
