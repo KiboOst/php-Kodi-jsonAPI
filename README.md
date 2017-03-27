@@ -1,6 +1,6 @@
 # php Kodi json API
 
-## Easy control of Kodi device(s) through http json-rpc inteface.
+## Easy control of Kodi device(s) through http json-rpc interface.
 (C) 2017, KiboOst
 
 This API is a php class with easy functions for your Kodi device.
@@ -120,7 +120,7 @@ You can create an endpoint url for triggering stuff from IFTTT. See IFTTTactions
 - New: $_Kodi->hibernate()
 - New: $_Kodi->shutdown()
 - New: $_Kodi->suspend()
-- New: Send custom json commande with $_Kodi->sendJson($jsonString, $timeout);
+- New: Send custom json command with $_Kodi->sendJson($jsonString, $timeout);
 
 #### v0.1 (2017-03-21)
 - First public version.
