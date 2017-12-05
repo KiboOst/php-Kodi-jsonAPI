@@ -3,11 +3,12 @@
 
 https://github.com/KiboOst/php-Kodi-jsonAPI
 
+
 */
 
 class Kodi{
 
-	public $_version = "0.2";
+	public $_version = "0.22";
 
 	//user functions======================================================
 	//GET
@@ -256,6 +257,17 @@ class Kodi{
 						}';
 
 		return $this->_request($jsonString);
+	}
+
+	public function setMute($mute=false)
+	{
+		$jsonString = '{"method":"Application.SetMute",
+						"params":{"mute":"toggle"}
+						}';
+		$answer = $this->_request($jsonString);
+		$state = $answer['result'];
+		if ($state != $mute) $this->setMute($mute);
+		else return $answer;
 	}
 
 	public function volumeInc()
