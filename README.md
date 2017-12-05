@@ -43,6 +43,9 @@ echo "<pre>getVolume:<br>".json_encode($getVolume, JSON_PRETTY_PRINT)."</pre><br
 
 $_Kodi->setVolume(40);
 
+//set mute (true/false):
+$_Kodi->setMute(true)
+
 //get or set shuffle playing true/false
 $dev = $_Kodi->getShuffle();
 echo "<pre>dev:<br>".json_encode($dev, JSON_PRETTY_PRINT)."</pre><br>";
@@ -114,6 +117,9 @@ echo "<pre>dev:<br>".json_encode($dev, JSON_PRETTY_PRINT)."</pre><br>";
 You can create an endpoint url for triggering stuff from IFTTT. See IFTTTactions.php example.
 
 ## Changes
+
+#### v0.22 (2017-11-05)
+- New: $_Kodi->setMute()
 
 #### v0.2 (2017-03-22)
 - New: $_Kodi->reboot()
