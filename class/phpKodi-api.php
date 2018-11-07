@@ -8,7 +8,7 @@ https://github.com/KiboOst/php-Kodi-jsonAPI
 
 class Kodi{
 
-	public $_version = "0.22";
+	public $_version = "0.31";
 
 	//user functions======================================================
 	//GET
@@ -25,6 +25,51 @@ class Kodi{
 			return $this->_playerid;
 		}
 		return array('error'=>'No active player.');
+	}
+
+	public function getAudioSongsList($filter=false, $value='') //filter false: none, 1: genre, 2: artist
+	{
+		$filterStr = '';
+		if ($filter)
+		{
+			$filterStr = '"filter": {"field": "';
+			if ($filter == 1) $filterStr .= 'genre';
+			else  $filterStr .= 'artist';
+			$filterStr .= '", "operator": "is", "value": "'.$value.'"}';
+
+		}
+		$jsonString = '{"jsonrpc": "2.0", "id": "libSongs",
+						"method": "AudioLibrary.GetSongs",
+						"params": { '.$filterStr.',
+									"properties": [ "artist", "album", "genre", "file"],
+									"sort": { "order": "ascending", "method": "track", "ignorearticle": true }
+								}
+						}';
+		return $this->_request($jsonString);
+	}
+
+	public function getAudioArtistsList()
+	{
+		$jsonString = '{"jsonrpc": "2.0", "id": 1,
+					"method": "AudioLibrary.GetArtists",
+					"params": { "properties": [ "genre" ],
+						"sort": { "order": "ascending", "method": "artist",
+						"ignorearticle": true }
+						}
+					}';
+		return $this->_request($jsonString);
+	}
+
+	public function getAudioAlbumsList()
+	{
+		$jsonString = '{"jsonrpc": "2.0", "id": 1,
+					"method": "AudioLibrary.GetAlbums",
+					"params": { "properties": [ "artist" ],
+						"sort": { "order": "ascending", "method": "artist",
+						"ignorearticle": true }
+						}
+					}';
+		return $this->_request($jsonString);
 	}
 
 	public function getPlayerItem($playerid=null)
@@ -325,18 +370,29 @@ class Kodi{
 			curl_setopt($this->_curlHdl, CURLOPT_RETURNTRANSFER, true);
 			curl_setopt($this->_curlHdl, CURLOPT_FOLLOWLOCATION, true);
 
-			curl_setopt($this->_curlHdl, CURLOPT_CONNECTTIMEOUT, 3);
+			curl_setopt($this->_curlHdl, CURLOPT_CONNECTTIMEOUT, 7);
 			curl_setopt($this->_curlHdl, CURLOPT_TIMEOUT, 3);
 		}
 
 		curl_setopt($this->_curlHdl, CURLOPT_TIMEOUT, $timeout);
 
-		$json = json_decode($jsonString, true);
-		$json['jsonrpc'] = '2.0';
-		$json['id'] = $this->_POSTid;
-		$this->_POSTid++;
+		//not for batch requests:
+		if ($jsonString[0] == '[')
+		{
+			if ($this->_debug) echo '_request | Batch request detected', "<br>";
+			$url = "http://".$this->_IP."/jsonrpc?request=".$jsonString;
+		}
+		else
+		{
+			$json = json_decode($jsonString, true);
+			$json['jsonrpc'] = '2.0';
+			$json['id'] = $this->_POSTid;
+			$this->_POSTid++;
+			$url = "http://".$this->_IP."/jsonrpc?request=".json_encode($json);
+		}
 
-		$url = "http://".$this->_IP."/jsonrpc?request=".json_encode($json);
+		if ($this->_debug) echo '_request | url:', $url, "<br>";
+
 		curl_setopt($this->_curlHdl, CURLOPT_URL, $url);
 
 		$answer = curl_exec($this->_curlHdl);
@@ -371,6 +427,7 @@ class Kodi{
 
 	protected $_curlHdl = null;
 	protected $_POSTid = 0;
+	protected $_debug = false;
 
 	/*
 	playerid 0: music
