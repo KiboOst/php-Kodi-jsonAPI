@@ -1,7 +1,8 @@
+
 # php Kodi json API
 
 ## Easy control of Kodi device(s) through http json-rpc interface.
-(C) 2017, KiboOst
+(C) 2018, KiboOst
 
 This API is a php class with easy functions for your Kodi device.
 
@@ -15,7 +16,6 @@ Feel free to submit an issue or pull request to add more.
 - Download the class/phpKodi-api.php on your server.
 - Include it in your script.
 - Start it with your device IP.
-
 - You can use a local IP ('192.168.1.120'), dyndns ('mydynname.ddns.net'), and include pass/port ('user:pass@IP:Port'), regarding if you use your script locally or on a web server.
 
 ```php
@@ -62,6 +62,24 @@ $_Kodi->setRepeat('all');
 //get playing time:
 $getTime = $_Kodi->getTime();
 echo "<pre>getTime:<br>".json_encode($getTime, JSON_PRETTY_PRINT)."</pre><br>";
+
+//get all music songs:
+/*
+You can filter result by genre or by artist:
+$songsList = $_Kodi->getAudioSongsList(1, 'jazz');
+$songsList = $_Kodi->getAudioSongsList(2, 'The Beatles');
+*/
+$songsList = $_Kodi->getAudioSongsList();
+echo "<pre>songsList :<br>".json_encode($songsList , JSON_PRETTY_PRINT)."</pre><br>";
+
+//get all music artists:
+$artistList= $_Kodi->getAudioArtistsList();
+echo "<pre>artistList:<br>".json_encode($artistList, JSON_PRETTY_PRINT)."</pre><br>";
+
+//get all music albums:
+$albumList = $_Kodi->getAudioAlbumsList();
+echo "<pre>albumList :<br>".json_encode($albumList , JSON_PRETTY_PRINT)."</pre><br>";
+
 ```
 
 Playlists functions:
@@ -118,6 +136,12 @@ You can create an endpoint url for triggering stuff from IFTTT. See IFTTTactions
 
 ## Changes
 
+#### v0.31 (2018-11-07)
+- New: support for batch request.
+- New: $_Kodi->getAudioArtistsList()
+- New: $_Kodi->getAudioSongsList()
+- New: $_Kodi->getAudioAlbumsList()
+
 #### v0.22 (2017-11-05)
 - New: $_Kodi->setMute()
 
@@ -137,20 +161,10 @@ The MIT License (MIT)
 
 Copyright (c) 2017 KiboOst
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+FITNESS FOR A PARTICULAR PURPOSE AND NON INFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
