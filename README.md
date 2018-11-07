@@ -129,6 +129,8 @@ $dev = $_Kodi->sendJson($jsonString);
 echo "<pre>dev:<br>".json_encode($dev, JSON_PRETTY_PRINT)."</pre><br>";
 ```
 
+Here are a few [goodies](Goodies.md) to real world use of such API.
+
 
 ## IFTTT
 
@@ -159,7 +161,7 @@ You can create an endpoint url for triggering stuff from IFTTT. See IFTTTactions
 
 The MIT License (MIT)
 
-Copyright (c) 2017 KiboOst
+Copyright (c) 2018 KiboOst
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
