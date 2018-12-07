@@ -8,7 +8,7 @@ https://github.com/KiboOst/php-Kodi-jsonAPI
 
 class Kodi{
 
-	public $_version = "0.31";
+	public $_version = "0.4";
 
 	//user functions======================================================
 	//GET
@@ -304,6 +304,22 @@ class Kodi{
 		return $this->_request($jsonString);
 	}
 
+	public function volumeUp($delta=5)
+	{
+		$vol = $this->getVolume();
+		$vol = $vol['result']['volume'];
+		$result = $this->setVolume($vol + $delta);
+		return $result;
+	}
+
+	public function volumeDown($delta=5)
+	{
+		$vol = $this->getVolume();
+		$vol = $vol['result']['volume'];
+		$result = $this->setVolume($vol - abs($delta));
+		return $result;
+	}
+
 	public function setMute($mute=false)
 	{
 		$jsonString = '{"method":"Application.SetMute",
@@ -313,24 +329,6 @@ class Kodi{
 		$state = $answer['result'];
 		if ($state != $mute) $this->setMute($mute);
 		else return $answer;
-	}
-
-	public function volumeInc()
-	{
-		$jsonString = '{"method":"Application.SetVolume",
-				"params":{"volume": "increment"}
-				}';
-
-		return $this->_request($jsonString);
-	}
-
-	public function volumeDec()
-	{
-		$jsonString = '{"method":"Application.SetVolume",
-				"params":{"volume": "decrement"}
-				}';
-
-		return $this->_request($jsonString);
 	}
 
 	//System
