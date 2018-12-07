@@ -138,6 +138,10 @@ You can create an endpoint url for triggering stuff from IFTTT. See IFTTTactions
 
 ## Changes
 
+#### v0.4 (2018-12-07)
+- New: $_Kodi->volumeUp(intdelta)
+- New: $_Kodi->volumeDown(intdelta)
+
 #### v0.31 (2018-11-07)
 - New: support for batch request.
 - New: $_Kodi->getAudioArtistsList()
