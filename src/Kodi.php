@@ -82,6 +82,11 @@ class Kodi {
             "id" : 1
          }';
         $answer = $this->_request($jsonString);
+
+        if ($this->_debug) {
+            var_dump($answer);
+        }
+
         if (isset($answer['error'])) {
             return ['result' => null, 'error' => $answer['error']];
         }
