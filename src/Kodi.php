@@ -68,6 +68,10 @@ class Kodi {
     }
 
 
+    public function setDebug(bool $dbg = true) {
+        $this->_debug = $dbg;
+    }
+
     /**
      * @return array
      */
