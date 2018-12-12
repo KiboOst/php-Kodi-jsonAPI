@@ -72,7 +72,11 @@ class Kodi {
      * @return array
      */
     public function getActivePlayer() {
-        $jsonString = '{"method":"Player.GetActivePlayers"}';
+        $jsonString = '{
+            "jsonrpc": "2.0", 
+            "method":"Player.GetActivePlayers",
+            "id" : 1
+         }';
         $answer = $this->_request($jsonString);
         if (isset($answer['error'])) {
             return ['result' => null, 'error' => $answer['error']];
