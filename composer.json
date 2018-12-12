@@ -1,0 +1,16 @@
+{
+    "name": "jens/php-kodi-json-api",
+    "type": "library",
+    "authors": [
+        {
+            "name": "Jens Reinemuth",
+            "email": "jens@reinemuth.rocks"
+        }
+    ],
+    "require": {
+        "php": ">=7.0.0"
+    },
+    "autoload": {
+        "psr-4": {"openWebX\\phpKodiApi\\": "src"}
+    }
+}
