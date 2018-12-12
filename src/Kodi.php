@@ -178,6 +178,7 @@ class Kodi {
      * @return array|null
      */
     public function getPlayerItem($playerid = null) {
+
         if (!isset($playerid)) {
             $playerid = $this->getActivePlayer();
         }
@@ -185,15 +186,45 @@ class Kodi {
             return $playerid;
         }
 
-        $jsonString = '{
-            "method":"Player.GetItem",
-            "params":{
-                "properties": [
+        $props = '';
+
+        switch($playerid) {
+            case 0:
+                $props = '
                     "title", 
                     "album", 
                     "artist", 
                     "duration", 
-                    "file"
+                    "thumbnail", 
+                    "file", 
+                    "fanart", 
+                    "streamdetails"
+                ';
+                break;
+            case 1:
+                $props = '
+                    "title", 
+                    "album", 
+                    "artist", 
+                    "season", 
+                    "episode", 
+                    "duration", 
+                    "showtitle", 
+                    "tvshowid", 
+                    "thumbnail", 
+                    "file", 
+                    "fanart", 
+                    "streamdetails"
+                ';
+                break;
+        }
+
+        //var_dump($playerid);
+        $jsonString = '{
+            "method":"Player.GetItem",
+            "params":{
+                "properties": [
+                   ' . $props . '
                 ],
                 "playerid": ' . $playerid . '
             }
