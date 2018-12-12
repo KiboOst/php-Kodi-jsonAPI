@@ -58,9 +58,9 @@ class Kodi {
      * Kodi constructor.
      * @param string $IP
      */
-    public function __construct(string $IP) {
+    public function __construct(string $IP, string $PORT = '80') {
         $IP = str_replace('http://', '', $IP);
-        $this->_IP = $IP;
+        $this->_IP = $IP . ':' . $PORT;
         $var = $this->getActivePlayer();
         if (isset($var['error'])) {
             $this->_error = $var['error'];
