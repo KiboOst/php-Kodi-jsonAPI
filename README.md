@@ -138,6 +138,9 @@ You can create an endpoint url for triggering stuff from IFTTT. See IFTTTactions
 
 ## Changes
 
+#### v0.6 (2019-02-08)
+- Now request as POST for future Kodi v18 support!
+
 #### v0.4 (2018-12-07)
 - New: $_Kodi->volumeUp(intdelta)
 - New: $_Kodi->volumeDown(intdelta)
