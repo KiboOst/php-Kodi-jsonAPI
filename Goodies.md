@@ -71,7 +71,7 @@ function playGenreSongs($genre='Jazz')
 	for ($i = 0; $i <= $maxConcurrentRequests; $i++)
 	{
 		echo $i, $songsFiles[$i], "<br>";
-		$thisJsonString = str_replace('__FILE__', urlencode($songsFiles[$i]), $jsonString);
+		$thisJsonString = str_replace('__FILE__', $songsFiles[$i], $jsonString);
 		$fullString .= $thisJsonString.',';
 	}
 	$fullString = rtrim($fullString, ',');
