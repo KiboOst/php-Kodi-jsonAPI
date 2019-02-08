@@ -8,7 +8,13 @@ https://github.com/KiboOst/php-Kodi-jsonAPI
 
 class Kodi{
 
-	public $_version = "0.4";
+	public $_version = "0.6";
+
+	public function setDebug($level=0)
+	{
+		if ($level == 0) $this->_debug = false;
+		else $this->_debug = true;
+	}
 
 	//user functions======================================================
 	//GET
@@ -181,7 +187,6 @@ class Kodi{
 
 	public function openDirectory($folder)
 	{
-		$folder = urlencode($folder);
 		$jsonString = '{"method":"Player.Open",
 						"params":{"item":{"directory":"'.$folder.'"}}}';
 
@@ -202,8 +207,6 @@ class Kodi{
 
 	public function loadPlaylist($playlist, $type=0)
 	{
-		$playlist = urlencode($playlist);
-
 		if ($type == 0) $media = 'music';
 		if ($type == 1) $media = 'video';
 		if ($type == 2) $media = 'picture';
@@ -219,8 +222,6 @@ class Kodi{
 
 	public function addPlayListDir($folder=null, $playlistid=null)
 	{
-		$folder = urlencode($folder);
-
 		if ( !isset($playlistid) ) $playlistid = $this->getActivePlayer();
 		if ( is_array($playlistid) ) $playlistid = 0;
 
@@ -235,8 +236,6 @@ class Kodi{
 
 	public function addPlayListFile($file=null, $playlistid=null)
 	{
-		$file = urlencode($file);
-
 		if ( !isset($playlistid) ) $playlistid = $this->getActivePlayer();
 		if ( is_array($playlistid) ) $playlistid = 0;
 
@@ -360,8 +359,9 @@ class Kodi{
 		return $this->_request($jsonString, $timeout);
 	}
 
-	protected function _request($jsonString, $timeout=3)
+	protected function _request($data=null, $timeout=3)
 	{
+		if ($this->_debug) echo '_request | data: ', $data, "<br>";
 		if (!isset($this->_curlHdl))
 		{
 			$this->_curlHdl = curl_init();
@@ -371,32 +371,42 @@ class Kodi{
 			curl_setopt($this->_curlHdl, CURLOPT_CONNECTTIMEOUT, 7);
 			curl_setopt($this->_curlHdl, CURLOPT_TIMEOUT, 3);
 		}
-
 		curl_setopt($this->_curlHdl, CURLOPT_TIMEOUT, $timeout);
 
-		//not for batch requests:
-		if ($jsonString[0] == '[')
+		//batch request or conform it:
+		if ($data[0] != '[')
 		{
-			if ($this->_debug) echo '_request | Batch request detected', "<br>";
-			$url = "http://".$this->_IP."/jsonrpc?request=".$jsonString;
+			$data = json_decode($data, true);
+			$data['jsonrpc'] = '2.0';
+			$data['id'] = $this->_POSTid;
+			$this->_POSTid++;
+			$payload = json_encode($data);
 		}
 		else
 		{
-			$json = json_decode($jsonString, true);
-			$json['jsonrpc'] = '2.0';
-			$json['id'] = $this->_POSTid;
-			$this->_POSTid++;
-			$url = "http://".$this->_IP."/jsonrpc?request=".json_encode($json);
+			$payload = $data;
 		}
 
-		if ($this->_debug) echo '_request | url:', $url, "<br>";
 
+		$url = 'http://'.$this->_IP.'/jsonrpc';
+		//curl_setopt($this->_curlHdl, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
+		curl_setopt($this->_curlHdl, CURLINFO_HEADER_OUT, true);
+		curl_setopt($this->_curlHdl, CURLOPT_POST, true);
+		curl_setopt($this->_curlHdl, CURLOPT_POSTFIELDS, $payload);
+		curl_setopt($this->_curlHdl, CURLOPT_HTTPHEADER, array(
+													'Content-Type: application/json',
+													'Content-Length: ' . strlen($payload))
+												);
+
+		$url = 'http://'.$this->_IP.'/jsonrpc';
 		curl_setopt($this->_curlHdl, CURLOPT_URL, $url);
+		if ($this->_debug) echo '_request | url: ', $url, "<br>";
+
 
 		$answer = curl_exec($this->_curlHdl);
 		if(curl_errno($this->_curlHdl))
 		{
-		    return array('error'=>curl_error($this->_curlHdl));
+			return array('error'=>curl_error($this->_curlHdl));
 		}
 
 		if ($answer == false)
@@ -422,10 +432,10 @@ class Kodi{
 	public $_error;
 	public $_playerid;
 	public $_playerType;
+	public $_debug = false;
 
 	protected $_curlHdl = null;
 	protected $_POSTid = 0;
-	protected $_debug = false;
 
 	/*
 	playerid 0: music
