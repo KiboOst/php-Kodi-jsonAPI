@@ -9,6 +9,8 @@ This API is a php class with easy functions for your Kodi device.
 - This API use json-rpc http interface and require enabling it:
 - In System->Settings->Network->Services activate Allow control of Kodi via HTTP
 
+- This API use POST request and is fully compatible with Kodi v17 and v18.
+
 Feel free to submit an issue or pull request to add more.
 
 ## How-to
