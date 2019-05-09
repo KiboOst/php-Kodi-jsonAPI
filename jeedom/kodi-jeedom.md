@@ -1,7 +1,7 @@
 
 <img align="right" src="Assets/logoJeedom.png" width="64">
 
-# # php Kodi json API - Jeedom
+# php Kodi json API - Jeedom
 
 ## Utilisation avec Jeedom
 
@@ -36,7 +36,7 @@ Il vous faudra pour çà deux plugins, gratuits:
 - Dans l'onglet *Commandes*, créez deux nouvelles commandes de type Script, Action, Message. Nommez les *playMusique* et *stopMusique* :
 
 
-<p align="center"><img src="Assets/script_cmds1.jpg" width="500"></p>
+<p align="center"><img src="Assets/script_cmds1.jpg" width="700"></p>
 
 Pour la commande *playMusique*, mettez comme requête : /var/www/html/kiboost/kodi/kodi_trigger.php action=playMusic siteId=#title#
 Pour la commande *stopMusique*, mettez comme requête : /var/www/html/kiboost/kodi/kodi_trigger.php action=stopMusic siteId=#title#
@@ -45,7 +45,7 @@ Vous venez donc de créer un équipement Script, avec deux commandes actions. Le
 
 Voici un exemple d'appel par scénario :
 
-<p align="center"><img src="Assets/scenario1.jpg" width="500"></p>
+<p align="center"><img src="Assets/scenario1.jpg" width="700"></p>
 
 Ici une scénario assez simple. On check si l'ampli est allumé, puis on règle le volume, la source, unmute et enfin on lance notre action *playMusique*.
 Dans ce scénario, l'ampli est géré de la même façon, avec un Script et une autre API [php-NADC338](https://github.com/KiboOst/php-NADC338) gérant un ampli NAD disposant du wifi. Avec un Kodi disposant d'une carte HifiBerry, on a du bon son !
