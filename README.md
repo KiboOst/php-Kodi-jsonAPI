@@ -13,6 +13,8 @@ This API is a php class with easy functions for your Kodi device.
 
 Feel free to submit an issue or pull request to add more.
 
+For french Jeedom user, here is a fast integration [article](/jeedom/kodi-jeedom.md) for you!
+
 ## How-to
 
 - Download the class/phpKodi-api.php on your server.
