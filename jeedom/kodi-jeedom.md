@@ -9,11 +9,11 @@
 Voici un exemple d'utilisation de *[php Kodi json API](https://github.com/KiboOst/php-Kodi-jsonAPI)* avec Jeedom.
 
 L'objectif consiste à pouvoir interagir avec Kodi (installé sur un raspberry par exemple) pour lancer de la musique, régler le volume etc à partir du dashboard ou d'un scénario.
-Je ne détaillerai par tout ce qu'on peux faire mais une fois que vous aurez compris au travers de quelques exemples, vous pourrez utiliser toutes les fonctions de l'API avec la puissance de Jeedom. Je l'utilise par exemple pour demander à SNIPS de mettre du Jazz, du mettre moins fort, etc. SNIPS est aussi capable de couper le son quand il est trop fort et que je lui demande quelque chose, puis de remettre le son ensuite etc. A vous d'adapter suivant vos souhaits.
+Je ne détaillerai par tout ce qu'on peux faire mais une fois que vous aurez compris au travers de quelques exemples, vous pourrez utiliser toutes les fonctions de l'API avec la puissance de Jeedom. Je l'utilise par exemple pour demander à SNIPS de mettre du Jazz, de mettre moins fort, etc. SNIPS est aussi capable de couper le son quand il est trop fort et que je lui demande quelque chose, puis de remettre le son, etc. A vous d'adapter suivant vos souhaits.
 
 Cela va consister à:
 - Télécharger *php Kodi json API* sur votre Jeedom.
-- Créer un Script avec commandes nécessaires.
+- Créer un Script avec les commandes nécessaires.
 - Créer un scénario déclenchant ces commandes.
 
 Il vous faudra pour çà deux plugins, gratuits:
@@ -31,15 +31,17 @@ Il vous faudra pour çà deux plugins, gratuits:
 
 ## Création du Script
 
-- Rien de compliqué ici, Plugins/Programmation/Script, puis créez un Script en cochant *Activer* (et *Visible* pour l'afficher sur le dashboard, avec le bon parent). Ici il aura pour nom Kodi Actions et pour parent Maison.
+- Rien de compliqué ici, Plugins/Programmation/Script, puis créez un Script en cochant *Activer* (et *Visible* pour l'afficher sur le dashboard, avec le bon parent, si vous le souhaitez). Ici il aura pour nom Kodi Actions.
 
 - Dans l'onglet *Commandes*, créez deux nouvelles commandes de type Script, Action, Message. Nommez les *playMusique* et *stopMusique* :
 
-
 <p align="center"><img src="Assets/script_cmds1.jpg" width="700"></p>
 
-Pour la commande *playMusique*, mettez comme requête : /var/www/html/kiboost/kodi/kodi_trigger.php action=playMusic siteId=#title#
-Pour la commande *stopMusique*, mettez comme requête : /var/www/html/kiboost/kodi/kodi_trigger.php action=stopMusic siteId=#title#
+Pour la commande *playMusique*, mettez comme requête :
+/var/www/html/kiboost/kodi/kodi_trigger.php action=playMusic siteId=#title#
+
+Pour la commande *stopMusique*, mettez comme requête :
+/var/www/html/kiboost/kodi/kodi_trigger.php action=stopMusic siteId=#title#
 
 Vous venez donc de créer un équipement Script, avec deux commandes actions. Les deux actions appellent le même fichier kodi_trigger.php, mais chaque commande lui passe sa propre action. On va voir pourquoi ci-dessous. La deuxième variable, siteId, vous permet de stipuler à quel Kodi vous voulez adresser la commande. Elle n'est pas obligatoire et si vous n'avez qu'un seul Kodi, ne la mettez pas.
 
@@ -47,8 +49,8 @@ Voici un exemple d'appel par scénario :
 
 <p align="center"><img src="Assets/scenario1.jpg" width="700"></p>
 
-Ici une scénario assez simple. On check si l'ampli est allumé, puis on règle le volume, la source, unmute et enfin on lance notre action *playMusique*.
-Dans ce scénario, l'ampli est géré de la même façon, avec un Script et une autre API [php-NADC338](https://github.com/KiboOst/php-NADC338) gérant un ampli NAD disposant du wifi. Avec un Kodi disposant d'une carte HifiBerry, on a du bon son !
+Ici un scénario assez simple. On check si l'ampli est allumé, puis on règle le volume, la source, unmute et enfin on lance notre action *playMusique*.
+Dans ce scénario, l'ampli est géré de la même façon, avec un Script et une autre API [php-NADC338](https://github.com/KiboOst/php-NADC338) gérant un ampli NAD disposant du wifi. Avec un Kodi et une carte HifiBerry, on a du bon son !
 
 Maintenant, voyons le fichier où beaucoup de choses vont se passer : *kodi_trigger.php*
 
