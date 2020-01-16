@@ -8,7 +8,7 @@ https://github.com/KiboOst/php-Kodi-jsonAPI
 
 class Kodi{
 
-	public $_version = "0.6";
+	public $_version = "0.61";
 
 	public function setDebug($level=0)
 	{
@@ -121,7 +121,7 @@ class Kodi{
 
 	public function getDirectory($folder, $type=0)
 	{
-		$folder = urlencode($folder);
+		//$folder = urlencode($folder);
 
 		if ($type == 0) $type = 'music';
 		if ($type == 1) $type = 'video';
@@ -178,7 +178,7 @@ class Kodi{
 
 	public function openFile($file) //will always answer OK even if file doesn't exist!!
 	{
-		$file = urlencode($file);
+		//$file = urlencode($file);
 		$jsonString = '{"method":"Player.Open",
 						"params":{"item":{"file":"'.$file.'"}}}';
 
@@ -389,7 +389,6 @@ class Kodi{
 
 
 		$url = 'http://'.$this->_IP.'/jsonrpc';
-		//curl_setopt($this->_curlHdl, CURLOPT_HTTPHEADER, array('Content-Type: application/json'));
 		curl_setopt($this->_curlHdl, CURLINFO_HEADER_OUT, true);
 		curl_setopt($this->_curlHdl, CURLOPT_POST, true);
 		curl_setopt($this->_curlHdl, CURLOPT_POSTFIELDS, $payload);
