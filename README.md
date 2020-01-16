@@ -142,6 +142,9 @@ You can create an endpoint url for triggering stuff from IFTTT. See IFTTTactions
 
 ## Changes
 
+#### v0.61 (2020-01-16)
+- Fix a bug with openFile() and getDirectory()
+
 #### v0.6 (2019-02-08)
 - Now request as POST for future Kodi v18 support!
 
