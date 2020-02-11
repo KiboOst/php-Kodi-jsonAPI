@@ -1,4 +1,4 @@
-<?php
+<?php declare(strict_types=1);
 
 namespace openWebX\phpKodiApi;
 
@@ -22,11 +22,11 @@ class Kodi {
     public ?string $playerId = null;
     public ?string $playerType = null;
     public bool $debug = false;
-    protected $curl = null;
+    protected $curl;
     protected int $postId = 0;
 
     public function __construct(string $ip) {
-        $this->ip = str_replace('http://', '', $ip);;
+        $this->ip = str_replace('http://', '', $ip);
         $var = $this->getActivePlayer();
         if (isset($var['error']) ) {
             $this->error = $var['error'];
@@ -62,60 +62,7 @@ class Kodi {
         return $this->_request($jsonString);
     }
 
-    protected function _request($data=null, int $timeout=3) : ?array {
-        if ($this->debug) {
-            echo '_request | data: ', $data, '<br>';
-        }
-        if (!isset($this->curl)) {
-            $this->curl = curl_init();
-            curl_setopt($this->curl, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($this->curl, CURLOPT_FOLLOWLOCATION, true);
-            curl_setopt($this->curl, CURLOPT_CONNECTTIMEOUT, 7);
-            curl_setopt($this->curl, CURLOPT_TIMEOUT, 3);
-        }
-        curl_setopt($this->curl, CURLOPT_TIMEOUT, $timeout);
 
-        //batch request or conform it:
-        if ($data[0] !== '[') {
-            $data = json_decode($data, true);
-            $data['jsonrpc'] = '2.0';
-            $data['id'] = $this->postId;
-            $this->postId++;
-            $payload = json_encode($data);
-        } else {
-            $payload = $data;
-        }
-
-        $url = 'http://'.$this->ip.'/jsonrpc';
-        curl_setopt($this->curl, CURLINFO_HEADER_OUT, true);
-        curl_setopt($this->curl, CURLOPT_POST, true);
-        curl_setopt($this->curl, CURLOPT_POSTFIELDS, $payload);
-        curl_setopt($this->curl, CURLOPT_HTTPHEADER, array(
-                'Content-Type: application/json',
-                'Content-Length: ' . strlen($payload))
-        );
-
-        $url = 'http://'.$this->ip.'/jsonrpc';
-        curl_setopt($this->curl, CURLOPT_URL, $url);
-        if ($this->debug) {
-            echo '_request | url: ', $url, '<br>';
-        }
-
-        $answer = curl_exec($this->curl);
-        if(curl_errno($this->curl)) {
-            return ['error'=>curl_error($this->curl)];
-        }
-
-        if ($answer == false) {
-            return ['error'=>"Couldn't reach Kodi device."];
-        }
-
-        $answer = json_decode($answer, true);
-        if (isset($answer['error']) ) {
-            return ['result'=>null, 'error'=>$answer['error']];
-        }
-        return ['result'=>$answer['result']];
-    }
 
     public function getAudioArtistsList(): ?array {
         $jsonString = '{"jsonrpc": "2.0", "id": 1,
@@ -173,20 +120,22 @@ class Kodi {
         return ['error'=>'No active player.'];
     }
 
-    public function getPlayList($playlistid=null)  {
-        if ( !isset($playlistid) ) $playlistid = $this->getActivePlayer();
-        if ( is_array($playlistid) ) $playlistid = 0;
+    public function getPlayList($playlistid=null): ?array {
+        if ( !isset($playlistid) ) {
+            $playlistid = $this->getActivePlayer();
+        }
+        if ( is_array($playlistid) ) {
+            $playlistid = 0;
+        }
 
-        if ($playlistid == 0)
+        if ($playlistid === 0)
         {
             $jsonString = '{"method":"Playlist.GetItems",
 						"params":{
 									"properties": ["title", "album", "artist", "duration"],
 									"playlistid": 0 }
 						}';
-        }
-        else
-        {
+        } else {
             $jsonString = '{"method":"Playlist.GetItems",
 						"params":{
 									"properties": ["runtime", "showtitle", "season", "title", "artist"],
@@ -197,20 +146,8 @@ class Kodi {
         return $this->_request($jsonString);
     }
 
-    public function getDirectory(string $folder, int $typeInt = 0) {
-        switch ($typeInt) {
-            case 0:
-                $type = 'music';
-                break;
-            case 1:
-                $type = 'video';
-                break;
-            case 2:
-                $type = 'picture';
-                break;
-        }
-
-
+    public function getDirectory(string $folder, int $typeInt = 0): ?array {
+        $type = $this->typeToString($typeInt);
         $jsonString = '{"method":"Files.GetDirectory",
 						"params":{"directory":"'.$folder.'",
 						"media":"'.$type.'"
@@ -225,10 +162,16 @@ class Kodi {
 
     protected function PlayerGetProperties($prop, $playerid) {
         $currentPlayer = $this->getActivePlayer();
-        if ( !isset($playerid) ) $playerid = $currentPlayer;
-        if ( is_array($playerid) ) return $playerid;
+        if ( !isset($playerid) ) {
+            $playerid = $currentPlayer;
+        }
+        if ( is_array($playerid) ) {
+            return $playerid;
+        }
 
-        if ( $currentPlayer != $playerid ) return array('error'=>"Player ID ".$playerid." isn't active!");
+        if ( $currentPlayer !== $playerid ) {
+            return ['error' => "Player ID " . $playerid . " isn't active!"];
+        }
 
         $jsonString = '{"method":"Player.GetProperties",
 						"params":{"properties": ["'.$prop.'"], "playerid": '.$playerid.'}
@@ -246,9 +189,13 @@ class Kodi {
     }
 
 
-    public function play($playlistid=null) {
-        if ( !isset($playlistid) ) $playlistid = $this->getActivePlayer();
-        if ( is_array($playlistid) ) $playlistid = 0;
+    public function play($playlistid=null): ?array {
+        if ( !isset($playlistid) ) {
+            $playlistid = $this->getActivePlayer();
+        }
+        if ( is_array($playlistid) ) {
+            $playlistid = 0;
+        }
 
         $jsonString = '{
 						"method":"Player.Open",
@@ -258,9 +205,13 @@ class Kodi {
         return $this->_request($jsonString);
     }
 
-    public function stop($playerid=null) {
-        if ( !isset($playerid) ) $playerid = $this->getActivePlayer();
-        if ( is_array($playerid) ) $playerid = 0;
+    public function stop($playerid=null): ?array {
+        if ( !isset($playerid) ) {
+            $playerid = $this->getActivePlayer();
+        }
+        if ( is_array($playerid) ) {
+            $playerid = 0;
+        }
 
         $jsonString = '{
 						"method":"Player.Stop",
@@ -270,7 +221,7 @@ class Kodi {
         return $this->_request($jsonString);
     }
 
-    public function openFile($file) {
+    public function openFile($file): ?array {
         //$file = urlencode($file);
         $jsonString = '{"method":"Player.Open",
 						"params":{"item":{"file":"'.$file.'"}}}';
@@ -278,16 +229,20 @@ class Kodi {
         return $this->_request($jsonString);
     }
 
-    public function openDirectory($folder) {
+    public function openDirectory($folder): ?array {
         $jsonString = '{"method":"Player.Open",
 						"params":{"item":{"directory":"'.$folder.'"}}}';
 
         return $this->_request($jsonString);
     }
 
-    public function clearPlayList($playlistid=null) {
-        if ( !isset($playlistid) ) $playlistid = $this->getActivePlayer();
-        if ( is_array($playlistid) ) $playlistid = 0;
+    public function clearPlayList($playlistid=null): ?array {
+        if ( !isset($playlistid) ) {
+            $playlistid = $this->getActivePlayer();
+        }
+        if ( is_array($playlistid) ) {
+            $playlistid = 0;
+        }
 
         $jsonString = '{"method":"Playlist.Clear",
 						"params":{"playlistid":'.$playlistid.'}
@@ -296,11 +251,8 @@ class Kodi {
         return $this->_request($jsonString);
     }
 
-    public function loadPlaylist($playlist, $type=0) {
-        if ($type == 0) $media = 'music';
-        if ($type == 1) $media = 'video';
-        if ($type == 2) $media = 'picture';
-
+    public function loadPlaylist(string $playlist, int $type=0): ?array {
+        $media = $this->typeToString($type);
         $jsonString = '{"method": "Playlist.Add",
 						"params":{"playlistid":'.$type.',
 								  "item":{"directory": "'.$playlist.'", "media": "'.$media.'"}
@@ -312,9 +264,13 @@ class Kodi {
 
     //System
 
-    public function addPlayListDir($folder=null, $playlistid=null) {
-        if ( !isset($playlistid) ) $playlistid = $this->getActivePlayer();
-        if ( is_array($playlistid) ) $playlistid = 0;
+    public function addPlayListDir($folder=null, $playlistid=null): ?array {
+        if ( !isset($playlistid) ) {
+            $playlistid = $this->getActivePlayer();
+        }
+        if ( is_array($playlistid) ) {
+            $playlistid = 0;
+        }
 
         $jsonString = '{"method":"Playlist.Add",
 						"params":{
@@ -325,9 +281,13 @@ class Kodi {
         return $this->_request($jsonString, 30);
     }
 
-    public function addPlayListFile($file=null, $playlistid=null) {
-        if ( !isset($playlistid) ) $playlistid = $this->getActivePlayer();
-        if ( is_array($playlistid) ) $playlistid = 0;
+    public function addPlayListFile($file=null, $playlistid=null): ?array {
+        if ( !isset($playlistid) ) {
+            $playlistid = $this->getActivePlayer();
+        }
+        if ( is_array($playlistid) ) {
+            $playlistid = 0;
+        }
 
         $jsonString = '{"method":"Playlist.Add",
 						"params":{
@@ -339,8 +299,12 @@ class Kodi {
     }
 
     public function togglePlayPause($playerid=null) {
-        if ( !isset($playerid) ) $playerid = $this->getActivePlayer();
-        if ( is_array($playerid) ) return $playerid;
+        if ( !isset($playerid) ) {
+            $playerid = $this->getActivePlayer();
+        }
+        if ( is_array($playerid) ) {
+            return $playerid;
+        }
 
         $jsonString = '{"method":"Player.PlayPause",
 						"params":{
@@ -352,10 +316,14 @@ class Kodi {
     }
 
     public function setShuffle($value=true, $playerid=null) {
-        if ( !isset($playerid) ) $playerid = $this->getActivePlayer();
-        if ( is_array($playerid) ) return $playerid;
+        if ( !isset($playerid) ) {
+            $playerid = $this->getActivePlayer();
+        }
+        if ( is_array($playerid) ) {
+            return $playerid;
+        }
 
-        $set = ( ($value == true) ? 'true' : 'false' );
+        $set = ( ($value === true) ? 'true' : 'false' );
 
         $jsonString = '{"method":"Player.SetShuffle",
 						"params":{
@@ -370,9 +338,13 @@ class Kodi {
 
     //internal functions==================================================
 
-    public function setRepeat($value="all", $playerid=null) {
-        if ( !isset($playerid) ) $playerid = $this->getActivePlayer();
-        if ( is_array($playerid) ) return $playerid;
+    public function setRepeat($value = 'all', $playerid=null) {
+        if ( !isset($playerid) ) {
+            $playerid = $this->getActivePlayer();
+        }
+        if ( is_array($playerid) ) {
+            return $playerid;
+        }
 
         $jsonString = '{"method":"Player.SetRepeat",
 						"params":{
@@ -423,37 +395,115 @@ class Kodi {
         return null;
     }
 
-    public function setMute(bool $mute=false)  {
+    public function setMute(bool $mute=false): ?array {
         $jsonString = '{"method":"Application.SetMute",
 						"params":{"mute":"toggle"}
 						}';
         $answer = $this->_request($jsonString);
         $state = $answer['result'];
-        if ($state != $mute) {
+        if ($state !== $mute) {
             $this->setMute($mute);
         }
-        else return $answer;
+        else { return $answer;
+        }
     }
 
-    public function reboot() {
+    public function reboot(): ?array {
         return $this->_request('{"method":"System.Reboot"}');
     }
 
-    public function hibernate() {
+    public function hibernate(): ?array {
         return $this->_request('{"method":"System.Hibernate"}');
     }
 
-    public function shutdown() {
+    public function shutdown(): ?array {
         return $this->_request('{"method":"System.Shutdown"}');
     }
 
-    public function suspend() {
+    public function suspend(): ?array {
         return $this->_request('{"method":"System.Suspend"}');
     }
 
-    public function sendJson($jsonString, $timeout=3) {
+    public function sendJson($jsonString, $timeout=3): ?array {
         return $this->_request($jsonString, $timeout);
     }
+
+    protected function _request(?string $data=null, int $timeout=3) : ?array {
+        if ($this->debug) {
+            echo '_request | data: ', $data, '<br>';
+        }
+        if (!isset($this->curl)) {
+            $this->curl = curl_init();
+            curl_setopt($this->curl, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($this->curl, CURLOPT_FOLLOWLOCATION, true);
+            curl_setopt($this->curl, CURLOPT_CONNECTTIMEOUT, $timeout);
+            curl_setopt($this->curl, CURLOPT_TIMEOUT, $timeout);
+        }
+        curl_setopt($this->curl, CURLOPT_TIMEOUT, $timeout);
+
+        //batch request or conform it:
+        if ($data[0] !== '[') {
+            $data = json_decode($data, true, 512, JSON_THROW_ON_ERROR);
+            $data['jsonrpc'] = '2.0';
+            $data['id'] = $this->postId;
+            $this->postId++;
+            $payload = json_encode($data, JSON_THROW_ON_ERROR, 512);
+        } else {
+            $payload = $data;
+        }
+
+        $url = 'http://' . $this->ip . '/jsonrpc';
+        curl_setopt($this->curl, CURLINFO_HEADER_OUT, true);
+        curl_setopt($this->curl, CURLOPT_POST, true);
+        curl_setopt($this->curl, CURLOPT_POSTFIELDS, $payload);
+        curl_setopt($this->curl, CURLOPT_HTTPHEADER, array(
+                'Content-Type: application/json',
+                'Content-Length: ' . strlen($payload))
+        );
+
+        $url = 'http://' . $this->ip . '/jsonrpc';
+        curl_setopt($this->curl, CURLOPT_URL, $url);
+        if ($this->debug) {
+            echo '_request | url: ', $url, '<br>';
+        }
+
+        $answer = curl_exec($this->curl);
+        if(curl_errno($this->curl)) {
+            return [
+                'error' => curl_error($this->curl)
+            ];
+        }
+
+        if ($answer === false) {
+            return [
+                'error' => "Couldn't reach Kodi device."
+            ];
+        }
+
+        $answer = json_decode($answer, true, 512, JSON_THROW_ON_ERROR);
+        if (isset($answer['error']) ) {
+            return [
+                'result' => null,
+                'error' => $answer['error']
+            ];
+        }
+        return [
+            'result'=>$answer['result']
+        ];
+    }
+
+    private function typeToString(int $typeInt) : ?string {
+        switch ($typeInt) {
+            case 0:
+                return 'music';
+            case 1:
+                return 'video';
+            case 2:
+                return 'picture';
+        }
+        return null;
+    }
+
 
     /*
     playerid 0: music

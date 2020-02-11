@@ -8,7 +8,9 @@
         }
     ],
     "require": {
-        "php": ">=7.4.0"
+        "php": ">=7.4.0",
+        "ext-curl": "*",
+        "ext-json": "*"
     },
     "autoload": {
         "psr-4": {"openWebX\\phpKodiApi\\": "src"}

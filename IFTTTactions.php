@@ -35,5 +35,3 @@ function autoPlay()
     $_Kodi->setShuffle(true);
     $_Kodi->setRepeat('all');
 }
-
-?>
