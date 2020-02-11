@@ -9,783 +9,463 @@ namespace openWebX\phpKodiApi;
  */
 class Kodi {
 
-    /**
-     * @var string
-     */
-    public $_version = "0.5";
+    public const KODI_FILTER_NONE = false;
+    public const KODI_FILTER_GENRE = 1;
+    public const KODI_FILTER_ARTIST = 2;
 
-    /**
-     * @var mixed
-     */
-    public $_IP;
-    /**
-     * @var mixed
-     */
-    public $_error;
-    /**
-     * @var
-     */
-    public $_playerid;
-    /**
-     * @var
-     */
-    public $_playerType;
+    public string $version = '0.99';
+    public string $ip;
 
-    /**
-     * @var null
-     */
-    protected $_curlHdl = null;
-    /**
-     * @var int
-     */
-    protected $_POSTid = 0;
-    /**
-     * @var bool
-     */
-    protected $_debug = false;
+    //user functions======================================================
+    //GET
+    public ?string $error = null;
+    public ?string $playerId = null;
+    public ?string $playerType = null;
+    public bool $debug = false;
+    protected $curl = null;
+    protected int $postId = 0;
 
-    /**
-     * @var array
-     */
-    private $typeArray = [
-        0 => 'music',
-        1 => 'video',
-        2 => 'picture'
-    ];
-
-
-    /**
-     * Kodi constructor.
-     * @param string $IP
-     */
-    public function __construct(string $IP, string $PORT = '80') {
-        $IP = str_replace('http://', '', $IP);
-        $this->_IP = $IP . ':' . $PORT;
+    public function __construct(string $ip) {
+        $this->ip = str_replace('http://', '', $ip);;
         $var = $this->getActivePlayer();
-        if (isset($var['error'])) {
-            $this->_error = $var['error'];
+        if (isset($var['error']) ) {
+            $this->error = $var['error'];
         }
     }
 
-
-    public function setDebug(bool $dbg = true) {
-        $this->_debug = $dbg;
+    public function setDebug(int $level = 0): void {
+        $this->debug = (bool) $level;
     }
 
-    /**
-     * @return array
-     */
-    public function getActivePlayer() {
-        $jsonString = '{
-            "jsonrpc": "2.0", 
-            "method":"Player.GetActivePlayers",
-            "id" : 1
-         }';
-        $answer = $this->_request($jsonString);
-
-        if ($this->_debug) {
-            var_dump($answer);
-        }
-
-        if (isset($answer['error'])) {
-            return ['result' => null, 'error' => $answer['error']];
-        }
-
-        if (count($answer['result']) > 0) {
-            $this->_playerid = $answer['result'][0]['playerid'];
-            $this->_playerType = $answer['result'][0]['type'];
-            return $this->_playerid;
-        }
-        return ['error' => 'No active player.'];
-    }
-
-    /**
-     * @param bool $filter
-     * @param string $value
-     * @return array
-     */
-    public function getAudioSongsList($filter = false, $value = '') {
+    public function getAudioSongsList(?int $filter = self::KODI_FILTER_NONE, string $value = ''): ?array {
         $filterStr = '';
-        if ($filter) {
+        if ($filter === self::KODI_FILTER_GENRE || $filter === self::KODI_FILTER_ARTIST) {
             $filterStr = '"filter": {"field": "';
-            $filterStr .= (($filter == 1) ? 'genre' : 'artist');
-            $filterStr .= '", "operator": "is", "value": "' . $value . '"}';
+            switch ($filter) {
+                case self::KODI_FILTER_GENRE:
+                    $filterStr .= 'genre';
+                    break;
+                case self::KODI_FILTER_ARTIST:
+                    $filterStr .= 'artist';
+                    break;
+            }
+            $filterStr .= '", "operator": "is", "value": "'.$value.'"}';
+
         }
-        $jsonString = '{
-            "jsonrpc": "2.0", 
-            "id": "libSongs",
-            "method": "AudioLibrary.GetSongs",
-            "params":   { 
-                ' . $filterStr . ',
-                "properties": [ 
-                    "artist", 
-                    "album", 
-                    "genre", 
-                    "file"
-                ],
-                "sort": { 
-                    "order": "ascending", 
-                    "method": "track", 
-                    "ignorearticle": true 
-                }
-            }
-        }';
+        $jsonString = '{"jsonrpc": "2.0", "id": "libSongs",
+						"method": "AudioLibrary.GetSongs",
+						"params": { '.$filterStr.',
+									"properties": [ "artist", "album", "genre", "file"],
+									"sort": { "order": "ascending", "method": "track", "ignorearticle": true }
+								}
+						}';
         return $this->_request($jsonString);
     }
 
-    /**
-     * @return array
-     */
-    public function getAudioArtistsList() {
-        $jsonString = '{
-            "jsonrpc": "2.0", 
-            "id": 1,
-            "method": "AudioLibrary.GetArtists",
-            "params": { 
-                "properties": [ "genre" ],
-                "sort": { 
-                    "order": "ascending", 
-                    "method": "artist",
-                    "ignorearticle": true 
-                }
-            }
-        }';
+    protected function _request($data=null, int $timeout=3) : ?array {
+        if ($this->debug) {
+            echo '_request | data: ', $data, '<br>';
+        }
+        if (!isset($this->curl)) {
+            $this->curl = curl_init();
+            curl_setopt($this->curl, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($this->curl, CURLOPT_FOLLOWLOCATION, true);
+            curl_setopt($this->curl, CURLOPT_CONNECTTIMEOUT, 7);
+            curl_setopt($this->curl, CURLOPT_TIMEOUT, 3);
+        }
+        curl_setopt($this->curl, CURLOPT_TIMEOUT, $timeout);
+
+        //batch request or conform it:
+        if ($data[0] !== '[') {
+            $data = json_decode($data, true);
+            $data['jsonrpc'] = '2.0';
+            $data['id'] = $this->postId;
+            $this->postId++;
+            $payload = json_encode($data);
+        } else {
+            $payload = $data;
+        }
+
+        $url = 'http://'.$this->ip.'/jsonrpc';
+        curl_setopt($this->curl, CURLINFO_HEADER_OUT, true);
+        curl_setopt($this->curl, CURLOPT_POST, true);
+        curl_setopt($this->curl, CURLOPT_POSTFIELDS, $payload);
+        curl_setopt($this->curl, CURLOPT_HTTPHEADER, array(
+                'Content-Type: application/json',
+                'Content-Length: ' . strlen($payload))
+        );
+
+        $url = 'http://'.$this->ip.'/jsonrpc';
+        curl_setopt($this->curl, CURLOPT_URL, $url);
+        if ($this->debug) {
+            echo '_request | url: ', $url, '<br>';
+        }
+
+        $answer = curl_exec($this->curl);
+        if(curl_errno($this->curl)) {
+            return ['error'=>curl_error($this->curl)];
+        }
+
+        if ($answer == false) {
+            return ['error'=>"Couldn't reach Kodi device."];
+        }
+
+        $answer = json_decode($answer, true);
+        if (isset($answer['error']) ) {
+            return ['result'=>null, 'error'=>$answer['error']];
+        }
+        return ['result'=>$answer['result']];
+    }
+
+    public function getAudioArtistsList(): ?array {
+        $jsonString = '{"jsonrpc": "2.0", "id": 1,
+					"method": "AudioLibrary.GetArtists",
+					"params": { "properties": [ "genre" ],
+						"sort": { "order": "ascending", "method": "artist",
+						"ignorearticle": true }
+						}
+					}';
         return $this->_request($jsonString);
     }
 
-    /**
-     * @return array
-     */
-    public function getAudioAlbumsList() {
-        $jsonString = '{
-            "jsonrpc": "2.0", 
-            "id": 1,
-            "method": "AudioLibrary.GetAlbums",
-            "params": { 
-                "properties": [ "artist" ],
-                "sort": { 
-                    "order": "ascending", 
-                    "method": "artist",
-                    "ignorearticle": true 
-                }
-            }
-        }';
+    public function getAudioAlbumsList(): ?array {
+        $jsonString = '{"jsonrpc": "2.0", "id": 1,
+					"method": "AudioLibrary.GetAlbums",
+					"params": { "properties": [ "artist" ],
+						"sort": { "order": "ascending", "method": "artist",
+						"ignorearticle": true }
+						}
+					}';
         return $this->_request($jsonString);
     }
 
-    /**
-     * @param null $playerid
-     * @return array|null
-     */
-    public function getPlayerItem($playerid = null) {
-
-        if (!isset($playerid)) {
+    public function getPlayerItem($playerid=null) {
+        if ( !isset($playerid) ) {
             $playerid = $this->getActivePlayer();
         }
-        if (is_array($playerid)) {
+        if ( is_array($playerid) ) {
             return $playerid;
         }
 
-        $props = '';
+        $jsonString = '{
+						"method":"Player.GetItem",
+						"params":{
+									"properties": ["title", "album", "artist", "duration", "file"],
+									"playerid": '.$playerid.'
+								}
+						}';
 
-        switch($playerid) {
+        return $this->_request($jsonString);
+    }
+
+    public function getActivePlayer() {
+        $jsonString = '{"method":"Player.GetActivePlayers"}';
+        $answer = $this->_request($jsonString);
+        if (isset($answer['error']) ) {
+            return ['result'=>null, 'error'=>$answer['error']];
+        }
+
+        if (count($answer['result'])>0) {
+            $this->playerId = $answer['result'][0]['playerid'];
+            $this->playerType = $answer['result'][0]['type'];
+            return $this->playerId;
+        }
+        return ['error'=>'No active player.'];
+    }
+
+    public function getPlayList($playlistid=null)  {
+        if ( !isset($playlistid) ) $playlistid = $this->getActivePlayer();
+        if ( is_array($playlistid) ) $playlistid = 0;
+
+        if ($playlistid == 0)
+        {
+            $jsonString = '{"method":"Playlist.GetItems",
+						"params":{
+									"properties": ["title", "album", "artist", "duration"],
+									"playlistid": 0 }
+						}';
+        }
+        else
+        {
+            $jsonString = '{"method":"Playlist.GetItems",
+						"params":{
+									"properties": ["runtime", "showtitle", "season", "title", "artist"],
+									"playlistid": 1 }
+						}';
+        }
+
+        return $this->_request($jsonString);
+    }
+
+    public function getDirectory(string $folder, int $typeInt = 0) {
+        switch ($typeInt) {
             case 0:
-                $props = '
-                    "title", 
-                    "album", 
-                    "artist", 
-                    "duration", 
-                    "thumbnail", 
-                    "file", 
-                    "fanart", 
-                    "streamdetails"
-                ';
+                $type = 'music';
                 break;
             case 1:
-                $props = '
-                    "title", 
-                    "album", 
-                    "artist", 
-                    "season", 
-                    "episode", 
-                    "duration", 
-                    "showtitle", 
-                    "tvshowid", 
-                    "thumbnail", 
-                    "file", 
-                    "fanart", 
-                    "streamdetails"
-                ';
+                $type = 'video';
+                break;
+            case 2:
+                $type = 'picture';
                 break;
         }
 
-        //var_dump($playerid);
-        $jsonString = '{
-            "method":"Player.GetItem",
-            "params":{
-                "properties": [
-                   ' . $props . '
-                ],
-                "playerid": ' . $playerid . '
-            }
-        }';
+
+        $jsonString = '{"method":"Files.GetDirectory",
+						"params":{"directory":"'.$folder.'",
+						"media":"'.$type.'"
+						}}';
 
         return $this->_request($jsonString);
     }
 
-    /**
-     * @param null $playlistid
-     * @return array
-     */
-    public function getPlayList($playlistid = null) //0: music, 1: video, 2:picture
-    {
-        if (!isset($playlistid)) {
-            $playlistid = $this->getActivePlayer();
-        }
-        if (is_array($playlistid)) {
-            $playlistid = 0;
-        }
-
-        if ($playlistid == 0) {
-            $jsonString = '{
-                "method":"Playlist.GetItems",
-                "params":{
-                    "properties": [
-                        "title", 
-                        "album", 
-                        "artist", 
-                        "duration"
-                    ],
-                    "playlistid": 0 }
-                }';
-        } else {
-            $jsonString = '{
-                "method":"Playlist.GetItems",
-                "params":{
-                    "properties": [
-                        "runtime", 
-                        "showtitle", 
-                        "season", 
-                        "title", 
-                        "artist"
-                    ],
-                    "playlistid": 1 
-                }
-            }';
-        }
-
-        return $this->_request($jsonString);
-    }
-
-    /**
-     * @param $folder
-     * @param null $type
-     * @return array
-     */
-    public function getDirectory($folder, $type = null) {
-        $folder = urlencode($folder);
-
-        if (isset($this->typeArray[$type])) {
-
-            $jsonString = '{
-                "method":"Files.GetDirectory",
-                "params":{
-                    "directory":"' . $folder . '",
-                    "media":"' . $type . '"
-                }
-            }';
-
-            return $this->_request($jsonString);
-        }
-        return [];
-    }
-
-    /**
-     * @return array
-     */
-    public function getVolume() {
-        $jsonString = '{
-            "method":"Application.GetProperties",
-            "params":{
-                "properties": ["volume"]
-            }
-        }';
-        return $this->_request($jsonString);
-    }
-
-    /**
-     * @param null $playerid
-     * @return array
-     */
-    public function getTime($playerid = null) {
+    public function getTime($playerid=null) {
         return $this->PlayerGetProperties('time', $playerid);
     }
 
-    /**
-     * @param null $playerid
-     * @return array
-     */
-    public function getShuffle($playerid = null) {
+    protected function PlayerGetProperties($prop, $playerid) {
+        $currentPlayer = $this->getActivePlayer();
+        if ( !isset($playerid) ) $playerid = $currentPlayer;
+        if ( is_array($playerid) ) return $playerid;
+
+        if ( $currentPlayer != $playerid ) return array('error'=>"Player ID ".$playerid." isn't active!");
+
+        $jsonString = '{"method":"Player.GetProperties",
+						"params":{"properties": ["'.$prop.'"], "playerid": '.$playerid.'}
+						}';
+
+        return $this->_request($jsonString);
+    }
+
+    public function getShuffle($playerid=null) {
         return $this->PlayerGetProperties('shuffled', $playerid);
     }
 
-    /**
-     * @param null $playerid
-     * @return array
-     */
-    public function getRepeat($playerid = null) {
+    public function getRepeat($playerid=null) {
         return $this->PlayerGetProperties('repeat', $playerid);
     }
 
-    //SET
 
-    /**
-     * @param null $playlistid
-     * @return array
-     */
-    public function play($playlistid = null) {
-        if (!isset($playlistid)) {
-            $playlistid = $this->getActivePlayer();
-        }
-        if (is_array($playlistid)) {
-            $playlistid = 0;
-        }
+    public function play($playlistid=null) {
+        if ( !isset($playlistid) ) $playlistid = $this->getActivePlayer();
+        if ( is_array($playlistid) ) $playlistid = 0;
 
         $jsonString = '{
-            "method":"Player.Open",
-            "params":{ 
-                "item": { 
-                    "playlistid": ' . $playlistid . ', 
-                    "position": 0 
-                } 
-            }
-        }';
+						"method":"Player.Open",
+						"params":{ "item": { "playlistid": '.$playlistid.', "position": 0 } }
+						}';
 
         return $this->_request($jsonString);
     }
 
-    /**
-     * @param null $playerid
-     * @return array
-     */
-    public function stop($playerid = null) {
-        if (!isset($playerid)) {
-            $playerid = $this->getActivePlayer();
-        }
-        if (is_array($playerid)) {
-            $playerid = 0;
-        }
+    public function stop($playerid=null) {
+        if ( !isset($playerid) ) $playerid = $this->getActivePlayer();
+        if ( is_array($playerid) ) $playerid = 0;
 
         $jsonString = '{
-            "method":"Player.Stop",
-            "params":{
-                "playerid":' . $playerid . '
-            }
-        }';
+						"method":"Player.Stop",
+						"params":{"playerid":'.$playerid.'}
+						}';
 
         return $this->_request($jsonString);
     }
 
-    /**
-     * @param $file
-     * @return array
-     */
     public function openFile($file) {
-        $file = urlencode($file);
-        $jsonString = '{
-            "method":"Player.Open",
-            "params":{
-                "item":{
-                    "file":"' . $file . '"
-                }
-            }
-        }';
+        //$file = urlencode($file);
+        $jsonString = '{"method":"Player.Open",
+						"params":{"item":{"file":"'.$file.'"}}}';
 
         return $this->_request($jsonString);
     }
 
-    /**
-     * @param $folder
-     * @return array
-     */
     public function openDirectory($folder) {
-        $folder = urlencode($folder);
-        $jsonString = '{
-            "method":"Player.Open",
-            "params":{
-                "item":{
-                    "directory":"' . $folder . '"
-                }
-            }
-        }';
-        return $this->_request($jsonString);
-    }
-
-    /**
-     * @param null $playlistid
-     * @return array
-     */
-    public function clearPlayList($playlistid = null) {
-        if (!isset($playlistid)) {
-            $playlistid = $this->getActivePlayer();
-        }
-        if (is_array($playlistid)) {
-            $playlistid = 0;
-        }
-
-        $jsonString = '{
-            "method":"Playlist.Clear",
-            "params":{
-                "playlistid":' . $playlistid . '
-            }
-        }';
+        $jsonString = '{"method":"Player.Open",
+						"params":{"item":{"directory":"'.$folder.'"}}}';
 
         return $this->_request($jsonString);
     }
 
-    /**
-     * @param $playlist
-     * @param int $type
-     * @return array
-     */
-    public function loadPlaylist($playlist, $type = 0) {
-        $playlist = urlencode($playlist);
+    public function clearPlayList($playlistid=null) {
+        if ( !isset($playlistid) ) $playlistid = $this->getActivePlayer();
+        if ( is_array($playlistid) ) $playlistid = 0;
 
-        $media = $this->typeArray[$type];
+        $jsonString = '{"method":"Playlist.Clear",
+						"params":{"playlistid":'.$playlistid.'}
+						}';
 
-        $jsonString = '{
-            "method": "Playlist.Add",
-            "params":{
-                "playlistid":' . $type . ',
-                "item":{
-                    "directory": "' . $playlist . '", 
-                    "media": "' . $media . '"
-                }
-            }
-        }';
+        return $this->_request($jsonString);
+    }
+
+    public function loadPlaylist($playlist, $type=0) {
+        if ($type == 0) $media = 'music';
+        if ($type == 1) $media = 'video';
+        if ($type == 2) $media = 'picture';
+
+        $jsonString = '{"method": "Playlist.Add",
+						"params":{"playlistid":'.$type.',
+								  "item":{"directory": "'.$playlist.'", "media": "'.$media.'"}
+								}
+						}';
 
         return $this->_request($jsonString, 30);
-    }
-
-    /**
-     * @param null $folder
-     * @param null $playlistid
-     * @return array
-     */
-    public function addPlayListDir($folder = null, $playlistid = null) {
-        if (!isset($playlistid)) {
-            $playlistid = $this->getActivePlayer();
-        }
-        if (is_array($playlistid)) {
-            $playlistid = 0;
-        }
-
-        $folder = urlencode($folder);
-
-        $jsonString = '{
-            "method":"Playlist.Add",
-            "params":{
-                "playlistid":' . $playlistid . ', 
-                "item": {
-                    "directory":"' . $folder . '"
-                }
-            }
-        }';
-        return $this->_request($jsonString, 30);
-    }
-
-    /**
-     * @param null $file
-     * @param null $playlistid
-     * @return array
-     */
-    public function addPlayListFile($file = null, $playlistid = null) {
-        if (!isset($playlistid)) {
-            $playlistid = $this->getActivePlayer();
-        }
-        if (is_array($playlistid)) {
-            $playlistid = 0;
-        }
-
-        $file = urlencode($file);
-
-        $jsonString = '{
-            "method":"Playlist.Add",
-            "params":{
-                "playlistid":' . $playlistid . ', 
-                "item": {
-                    "file":"' . $file . '"
-                }
-            }
-        }';
-
-        return $this->_request($jsonString);
-    }
-
-    /**
-     * @param null $playerid
-     * @return array|null
-     */
-    public function togglePlayPause($playerid = null) {
-        if (!isset($playerid)) {
-            $playerid = $this->getActivePlayer();
-        }
-        if (is_array($playerid)) {
-            return $playerid;
-        }
-
-        $jsonString = '{
-            "method":"Player.PlayPause",
-            "params":{
-                "playerid": ' . $playerid . '
-            }
-        }';
-
-        return $this->_request($jsonString);
-    }
-
-    /**
-     * @param bool $value
-     * @param null $playerid
-     * @return array|null
-     */
-    public function setShuffle($value = true, $playerid = null) {
-        if (!isset($playerid)) {
-            $playerid = $this->getActivePlayer();
-        }
-        if (is_array($playerid)) {
-            return $playerid;
-        }
-
-        $set = (($value == true) ? 'true' : 'false');
-
-        $jsonString = '{
-            "method":"Player.SetShuffle",
-            "params":{
-                "playerid": ' . $playerid . ',
-                "shuffle":' . $set . '
-            }
-        }';
-
-        return $this->_request($jsonString);
-    }
-
-    /**
-     * @param string $value
-     * @param null $playerid
-     * @return array|null
-     */
-    public function setRepeat($value = "all", $playerid = null) {
-        if (!isset($playerid)) {
-            $playerid = $this->getActivePlayer();
-        }
-        if (is_array($playerid)) {
-            return $playerid;
-        }
-
-        $jsonString = '{
-            "method":"Player.SetRepeat",
-            "params":{
-                "playerid": ' . $playerid . ',
-                "repeat":"' . $value . '"
-            }
-        }';
-
-        return $this->_request($jsonString);
-    }
-
-    /**
-     * @param int $level
-     * @return array
-     */
-    public function setVolume($level = 30) {
-        $jsonString = '{
-            "method":"Application.SetVolume",
-            "params":{
-                "volume":' . $level . '
-            }
-        }';
-
-        return $this->_request($jsonString);
-    }
-
-    /**
-     * @param int $delta
-     * @return array
-     */
-    public function volumeUp($delta = 5) {
-        $vol = $this->getVolume();
-        $vol = $vol['result']['volume'];
-        $result = $this->setVolume($vol + $delta);
-        return $result;
-    }
-
-    /**
-     * @param int $delta
-     * @return array
-     */
-    public function volumeDown($delta = 5) {
-        $vol = $this->getVolume();
-        $vol = $vol['result']['volume'];
-        $result = $this->setVolume($vol - abs($delta));
-        return $result;
-    }
-
-    /**
-     * @param bool $mute
-     * @return array
-     */
-    public function setMute($mute = false) {
-        $jsonString = '{
-            "method":"Application.SetMute",
-            "params":{
-                "mute":"toggle"
-            }
-        }';
-        $answer = $this->_request($jsonString);
-        $state = $answer['result'];
-        if ($state != $mute) {
-            $this->setMute($mute);
-        } else {
-            return $answer;
-        }
     }
 
     //System
 
-    /**
-     * @return array
-     */
-    public function reboot() {
-        return $this->_request('{"method":"System.Reboot"}');
+    public function addPlayListDir($folder=null, $playlistid=null) {
+        if ( !isset($playlistid) ) $playlistid = $this->getActivePlayer();
+        if ( is_array($playlistid) ) $playlistid = 0;
+
+        $jsonString = '{"method":"Playlist.Add",
+						"params":{
+								"playlistid":'.$playlistid.', "item": {"directory":"'.$folder.'"}
+								}
+						}';
+
+        return $this->_request($jsonString, 30);
     }
 
-    /**
-     * @return array
-     */
-    public function hibernate() {
-        return $this->_request('{"method":"System.Hibernate"}');
+    public function addPlayListFile($file=null, $playlistid=null) {
+        if ( !isset($playlistid) ) $playlistid = $this->getActivePlayer();
+        if ( is_array($playlistid) ) $playlistid = 0;
+
+        $jsonString = '{"method":"Playlist.Add",
+						"params":{
+								"playlistid":'.$playlistid.', "item": {"file":"'.$file.'"}
+								}
+						}';
+
+        return $this->_request($jsonString);
     }
 
-    /**
-     * @return array
-     */
-    public function shutdown() {
-        return $this->_request('{"method":"System.Shutdown"}');
+    public function togglePlayPause($playerid=null) {
+        if ( !isset($playerid) ) $playerid = $this->getActivePlayer();
+        if ( is_array($playerid) ) return $playerid;
+
+        $jsonString = '{"method":"Player.PlayPause",
+						"params":{
+									"playerid": '.$playerid.'
+								}
+						}';
+
+        return $this->_request($jsonString);
     }
 
-    /**
-     * @return array
-     */
-    public function suspend() {
-        return $this->_request('{"method":"System.Suspend"}');
+    public function setShuffle($value=true, $playerid=null) {
+        if ( !isset($playerid) ) $playerid = $this->getActivePlayer();
+        if ( is_array($playerid) ) return $playerid;
+
+        $set = ( ($value == true) ? 'true' : 'false' );
+
+        $jsonString = '{"method":"Player.SetShuffle",
+						"params":{
+									"playerid": '.$playerid.',
+									"shuffle":'.$set.'
+								}
+						}';
+
+        return $this->_request($jsonString);
     }
 
 
     //internal functions==================================================
 
-    /**
-     * @param $prop
-     * @param $playerid
-     * @return array
-     */
-    protected function PlayerGetProperties($prop, $playerid) {
-        $currentPlayer = $this->getActivePlayer();
-        if (!isset($playerid)) {
-            $playerid = $currentPlayer;
-        }
-        if (is_array($playerid)) {
-            return $playerid;
-        }
+    public function setRepeat($value="all", $playerid=null) {
+        if ( !isset($playerid) ) $playerid = $this->getActivePlayer();
+        if ( is_array($playerid) ) return $playerid;
 
-        if ($currentPlayer != $playerid) {
-            return [
-                'error' => "Player ID " . $playerid . " isn't active!"
-            ];
-        }
-
-        $jsonString = '{
-            "method":"Player.GetProperties",
-            "params":{
-                "properties": ["' . $prop . '"], 
-                "playerid": ' . $playerid . '
-            }
-        }';
+        $jsonString = '{"method":"Player.SetRepeat",
+						"params":{
+									"playerid": '.$playerid.',
+									"repeat":"'.$value.'"
+								}
+						}';
 
         return $this->_request($jsonString);
     }
 
     //calling functions===================================================
 
-    /**
-     * @param $jsonString
-     * @param int $timeout
-     * @return array
-     */
-    public function sendJson($jsonString, $timeout = 3) {
+
+
+    public function getVolume() : ?array {
+        $jsonString = '{
+						"method":"Application.GetProperties",
+						"params":{"properties": ["volume"]}
+						}';
+
+        return $this->_request($jsonString);
+    }
+
+    public function setVolume(int $level = 30) : ?array {
+        $jsonString = '{"method":"Application.SetVolume",
+						"params":{"volume":'.$level.'}
+						}';
+
+        return $this->_request($jsonString);
+    }
+
+    public function volumeUp(int $delta = 5) : ?array {
+        $vol = $this->getVolume();
+        if ($vol) {
+            $vol = $vol['result']['volume'];
+            return $this->setVolume($vol + $delta);
+        }
+        return null;
+    }
+
+    public function volumeDown(int $delta = 5) : ?array {
+        $vol = $this->getVolume();
+        if ($vol) {
+            $vol = $vol['result']['volume'];
+            return $this->setVolume($vol - abs($delta));
+        }
+        return null;
+    }
+
+    public function setMute(bool $mute=false)  {
+        $jsonString = '{"method":"Application.SetMute",
+						"params":{"mute":"toggle"}
+						}';
+        $answer = $this->_request($jsonString);
+        $state = $answer['result'];
+        if ($state != $mute) {
+            $this->setMute($mute);
+        }
+        else return $answer;
+    }
+
+    public function reboot() {
+        return $this->_request('{"method":"System.Reboot"}');
+    }
+
+    public function hibernate() {
+        return $this->_request('{"method":"System.Hibernate"}');
+    }
+
+    public function shutdown() {
+        return $this->_request('{"method":"System.Shutdown"}');
+    }
+
+    public function suspend() {
+        return $this->_request('{"method":"System.Suspend"}');
+    }
+
+    public function sendJson($jsonString, $timeout=3) {
         return $this->_request($jsonString, $timeout);
     }
 
-    /**
-     * @param $jsonString
-     * @param int $timeout
-     * @return array
-     */
-    protected function _request($jsonString, $timeout = 3) {
-        if (!isset($this->_curlHdl)) {
-            $this->_curlHdl = curl_init();
-            curl_setopt($this->_curlHdl, CURLOPT_RETURNTRANSFER, true);
-            curl_setopt($this->_curlHdl, CURLOPT_FOLLOWLOCATION, true);
+    /*
+    playerid 0: music
+    palyerid 1: video
+    palyerid 2: picture
 
-            curl_setopt($this->_curlHdl, CURLOPT_CONNECTTIMEOUT, 7);
-            curl_setopt($this->_curlHdl, CURLOPT_TIMEOUT, 3);
-        }
+    playlist 0: current music playlist
+    playlist 1: current video playlist
 
-        curl_setopt($this->_curlHdl, CURLOPT_TIMEOUT, $timeout);
+    http://kodi.wiki/view/JSON-RPC_API/v8
 
-        //not for batch requests:
-        if ($jsonString[0] == '[') {
-            if ($this->_debug) {
-                echo '_request | Batch request detected', "<br>";
-            }
-            $url = "http://" . $this->_IP . "/jsonrpc?request=" . $jsonString;
-        } else {
-            $json = json_decode($jsonString, true);
-            $json['jsonrpc'] = '2.0';
-            $json['id'] = $this->_POSTid;
-            $this->_POSTid++;
-            $url = "http://" . $this->_IP . "/jsonrpc?request=" . json_encode($json);
-        }
+    */
 
-        if ($this->_debug) {
-            echo '_request | url:', $url, "<br>";
-        }
-
-        curl_setopt($this->_curlHdl, CURLOPT_URL, $url);
-
-        $answer = curl_exec($this->_curlHdl);
-        if (curl_errno($this->_curlHdl)) {
-            return [
-                'error' => curl_error($this->_curlHdl)
-            ];
-        }
-
-        if ($answer == false) {
-            return [
-                'error' => "Couldn't reach Kodi device."
-            ];
-        }
-
-        $answer = json_decode($answer, true);
-        if (isset($answer['error'])) {
-            return [
-                'result' => null,
-                'error' => $answer['error']
-            ];
-        }
-        return [
-            'result' => $answer['result']
-        ];
-    }
-
+//Kodi end
 }
