@@ -86,7 +86,7 @@ class Kodi {
         return $this->_request($jsonString);
     }
 
-    public function getPlayerItem($playerid=null) {
+    public function getPlayerItem(?string $playerid = null) {
         if ( !isset($playerid) ) {
             $playerid = $this->getActivePlayer();
         }
@@ -109,7 +109,10 @@ class Kodi {
         $jsonString = '{"method":"Player.GetActivePlayers"}';
         $answer = $this->_request($jsonString);
         if (isset($answer['error']) ) {
-            return ['result'=>null, 'error'=>$answer['error']];
+            return [
+                'result'=>null,
+                'error'=>$answer['error']
+            ];
         }
 
         if (count($answer['result'])>0) {
@@ -117,7 +120,9 @@ class Kodi {
             $this->playerType = $answer['result'][0]['type'];
             return $this->playerId;
         }
-        return ['error'=>'No active player.'];
+        return [
+            'error'=>'No active player.'
+        ];
     }
 
     public function getPlayList($playlistid=null): ?array {
